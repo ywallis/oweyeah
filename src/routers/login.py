@@ -6,19 +6,22 @@ from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
+from pydantic import EmailStr
 from sqlmodel import Session, select
 
 from src.authentication import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    ResetPasswordRequest,
     Token,
     create_access_token,
+    extract_user,
     get_current_user,
     google_client_id,
     google_client_secret,
     google_redirect_url,
 )
 from src.models import User, UserCreateNP
-from src.utils import check_hash, get_session
+from src.utils import check_hash, get_session, hash_password
 
 router = APIRouter()
 
@@ -142,3 +145,37 @@ async def login_for_token(
 @router.get("/me", response_model=User)
 async def read_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/request_password_reset")
+async def request_password_reset(
+    email: EmailStr,
+    session: Session = Depends(get_session),
+):
+    statement = select(User).where(User.email == email)
+    user = session.exec(statement).one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    token_expiration = timedelta(minutes=5)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires=token_expiration
+    )
+    return {"token": access_token}
+
+
+@router.post("/reset_password")
+async def reset_password(
+    data: ResetPasswordRequest,
+    session: Session = Depends(get_session),
+):
+    email = extract_user(data)
+
+    statement = select(User).where(User.email == email)
+    user = session.exec(statement).one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.hashed_password = hash_password(data.new_password)
+    session.commit()
+    return {"password_change": "ok"}

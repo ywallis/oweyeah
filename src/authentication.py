@@ -33,6 +33,11 @@ oauth2_scheme = OAuth2PasswordBearer(auto_error=False, tokenUrl="token")
 google_scheme = HTTPBearer(auto_error=False, scheme_name="Google OAuth")
 
 
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -51,6 +56,15 @@ def create_access_token(data: dict, expires: timedelta | None = None):
     to_encode.update({"exp": expiration})
     encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def extract_user(reset_data: ResetPasswordRequest):
+    payload = jwt.decode(reset_data.token, secret_key, algorithms=[ALGORITHM])
+    email = payload.get("sub")
+    if email is None:
+        raise HTTPException(status_code=404, detail="No user found")
+
+    return email
 
 
 async def get_current_user(
@@ -77,14 +91,14 @@ async def get_current_user(
         email = payload.get("sub")
         if email is None:
             raise HTTPException(
-                status_code=401, detail="Could not validate credentials 1"
+                status_code=401, detail="Could not validate credentials"
             )
         token_data = TokenData(email=email)
     except InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Could not validate credentials 2")
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
 
     statement = select(User).where(User.email == token_data.email)
     user = session.exec(statement).one_or_none()
     if not user:
-        raise HTTPException(status_code=401, detail="Could not validate credentials 3")
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
     return user
