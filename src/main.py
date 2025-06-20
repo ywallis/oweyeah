@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.middleware import LoggingMiddleware
 from src.routers import flats, items, login, reset, transactions, users
@@ -16,7 +16,7 @@ async def lifespan(_app: FastAPI):
     # Shutdown logic (optional)
 
 
-origins = ["http://localhost:3000", "https://oy.yannwallis.com"]
+origins = ["http://localhost:8081", "https://oy.yannwallis.com"]
 
 app = FastAPI(lifespan=lifespan)
 
