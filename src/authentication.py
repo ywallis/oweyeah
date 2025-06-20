@@ -33,6 +33,10 @@ oauth2_scheme = OAuth2PasswordBearer(auto_error=False, tokenUrl="token")
 google_scheme = HTTPBearer(auto_error=False, scheme_name="Google OAuth")
 
 
+class TokenUrl(BaseModel):
+    url: str
+
+
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str

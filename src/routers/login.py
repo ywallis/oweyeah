@@ -13,6 +13,7 @@ from src.authentication import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     ResetPasswordRequest,
     Token,
+    TokenUrl,
     create_access_token,
     extract_user,
     get_current_user,
@@ -26,7 +27,9 @@ from src.utils import check_hash, get_session, hash_password
 router = APIRouter()
 
 
-@router.get("/login/google", summary="Initiate Google OAuth Login")
+@router.get(
+    "/login/google", summary="Initiate Google OAuth Login", response_model=TokenUrl
+)
 async def login_google():
     """
     Redirects the user to Google's OAuth consent screen.
@@ -41,14 +44,13 @@ async def login_google():
             detail="Google OAuth configuration missing.",
         )
 
-    return {
-        "url": (
-            f"https://accounts.google.com/o/oauth2/auth?"
-            f"response_type=code&client_id={google_client_id}&"
-            f"redirect_uri={google_redirect_url}&scope=openid%20profile%20email&"
-            f"access_type=offline"
-        )
-    }
+    url = (
+        f"https://accounts.google.com/o/oauth2/auth?"
+        f"response_type=code&client_id={google_client_id}&"
+        f"redirect_uri={google_redirect_url}&scope=openid%20profile%20email&"
+        f"access_type=offline"
+    )
+    return TokenUrl(url=url)
 
 
 @router.get(
