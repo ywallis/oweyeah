@@ -1,8 +1,38 @@
 from datetime import date, datetime
 
+from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel
 
 from src.timestamps import TimestampMixin
+
+
+class TokenUrl(BaseModel):
+    url: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    email: str | None = None
+
+
+class RefreshTokenBase(TimestampMixin, SQLModel):
+    token: str
+    user_email: str = Field(foreign_key="user.email")
+    expiration: datetime
+    valid: bool
+
+
+class RefreshToken(RefreshTokenBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
 
 
 class FlatBase(TimestampMixin, SQLModel):

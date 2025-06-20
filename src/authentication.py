@@ -1,4 +1,5 @@
 import os
+import secrets
 from datetime import datetime, timedelta
 
 import jwt
@@ -11,10 +12,9 @@ from fastapi.security import (
     OAuth2PasswordBearer,
 )
 from jwt.exceptions import InvalidTokenError
-from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from src.models import User
+from src.models import RefreshToken, ResetPasswordRequest, TokenData, User
 from src.utils import get_session
 
 ALGORITHM = "HS256"
@@ -33,22 +33,21 @@ oauth2_scheme = OAuth2PasswordBearer(auto_error=False, tokenUrl="token")
 google_scheme = HTTPBearer(auto_error=False, scheme_name="Google OAuth")
 
 
-class TokenUrl(BaseModel):
-    url: str
+def create_opaque_token() -> str:
+    return secrets.token_urlsafe(64)
 
 
-class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str
+def create_refresh_token(user_email: str) -> RefreshToken:
+    opaque_token = create_opaque_token()
+    refresh_token_expiration = datetime.now() + timedelta(days=30)
+    refresh_token = RefreshToken(
+        token=opaque_token,
+        user_email=user_email,
+        expiration=refresh_token_expiration,
+        valid=True,
+    )
 
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    email: str | None = None
+    return refresh_token
 
 
 def create_access_token(data: dict, expires: timedelta | None = None):

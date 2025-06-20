@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 
 from src.middleware import LoggingMiddleware
@@ -15,10 +16,19 @@ async def lifespan(_app: FastAPI):
     # Shutdown logic (optional)
 
 
+origins = ["http://localhost:3000", "https://oy.yannwallis.com"]
+
 app = FastAPI(lifespan=lifespan)
 
 
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 app.include_router(users.router)

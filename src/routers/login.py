@@ -12,19 +12,27 @@ from sqlmodel import Session, select
 from src.authentication import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     ResetPasswordRequest,
-    Token,
-    TokenUrl,
     create_access_token,
+    create_refresh_token,
     extract_user,
     get_current_user,
     google_client_id,
     google_client_secret,
     google_redirect_url,
 )
-from src.models import User, UserCreateNP
+from src.models import RefreshToken, Token, TokenUrl, User, UserCreateNP
 from src.utils import check_hash, get_session, hash_password
 
 router = APIRouter()
+
+
+@router.get("/opaquetokens/", response_model=list[RefreshToken])
+def fetch_flats(
+    *,
+    session: Session = Depends(get_session),
+):
+    tokens = session.exec(select(RefreshToken)).all()
+    return tokens
 
 
 @router.get(
@@ -80,6 +88,7 @@ async def auth_google(code: str, session: Session = Depends(get_session)):
             detail="Missing access_token or id_token from Google response.",
         )
 
+    # This only checks the validity of the Google-issued token
     idinfo = id_token.verify_oauth2_token(
         google_id_token, google_requests.Request(), google_client_id
     )
@@ -136,6 +145,11 @@ async def login_for_token(
         raise HTTPException(status_code=404, detail="Cannot authenticate")
     if not check_hash(form_data.password, user.hashed_password):
         raise HTTPException(status_code=404, detail="Cannot authenticate")
+
+    # Creating refresh token
+    refresh_token = create_refresh_token(user.email)
+    session.add(refresh_token)
+    session.commit()
 
     token_expiration = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
