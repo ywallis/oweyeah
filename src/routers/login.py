@@ -56,7 +56,7 @@ async def login_google():
         f"https://accounts.google.com/o/oauth2/auth?"
         f"response_type=code&client_id={google_client_id}&"
         f"redirect_uri={google_redirect_url}&scope=openid%20profile%20email&"
-        f"access_type=offline"
+        f"access_type=online"
     )
     return TokenUrl(url=url)
 
