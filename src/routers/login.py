@@ -169,13 +169,31 @@ async def get_refresh_token(
     if not token:
         raise HTTPException(status_code=404, detail="Token not found")
     if not token.valid:
-        raise HTTPException(status_code=404, detail="Token voided")
-
+        raise HTTPException(status_code=404, detail="Token has been voided")
 
     access_token = create_access_token(
         data={"sub": token.user_email}, expires=timedelta(minutes=10)
     )
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.post("/signout")
+async def void_refresh_token(
+    *,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    statement = select(RefreshToken).where(
+        RefreshToken.user_email == current_user.email
+    )
+    tokens = session.exec(statement).all()
+    if len(tokens) == 0:
+        raise HTTPException(status_code=404, detail="No tokens found")
+    for token in tokens:
+        token.valid = False
+        session.add(token)
+    session.commit()
+    return {"deleted": "ok"}
 
 
 @router.get("/me", response_model=User)
