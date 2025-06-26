@@ -158,6 +158,26 @@ async def login_for_token(
     return Token(access_token=access_token, token_type="bearer")
 
 
+@router.post("/refresh", response_model=Token)
+async def get_refresh_token(
+    *,
+    refresh_token: str,
+    session: Session = Depends(get_session),
+):
+    statement = select(RefreshToken).where(RefreshToken.token == refresh_token)
+    token = session.exec(statement).one_or_none()
+    if not token:
+        raise HTTPException(status_code=404, detail="Token not found")
+    if not token.valid:
+        raise HTTPException(status_code=404, detail="Token voided")
+
+
+    access_token = create_access_token(
+        data={"sub": token.user_email}, expires=timedelta(minutes=10)
+    )
+    return Token(access_token=access_token, token_type="bearer")
+
+
 @router.get("/me", response_model=User)
 async def read_me(current_user: User = Depends(get_current_user)):
     return current_user
