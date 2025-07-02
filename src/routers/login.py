@@ -42,8 +42,6 @@ async def login_google():
     """
     Redirects the user to Google's OAuth consent screen.
     The `scope` parameter requests access to the user's OpenID, profile, and email information.
-    `access_type=offline` ensures a refresh token is issued (if consented by the user),
-    allowing for long-lived access.
     """
     # Ensure google_client_id and google_redirect_url are correctly configured
     if not google_client_id or not google_redirect_url:
@@ -128,11 +126,7 @@ async def auth_google(code: str, session: Session = Depends(get_session)):
     session.add(refresh_token)
     session.commit()
 
-    token_expiration = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires=token_expiration
-    )
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(token=refresh_token.token, token_type="refresh")
 
 
 @router.post("/login/password", summary="Login endpoint for email/password")
@@ -156,11 +150,7 @@ async def login_for_token(
     session.add(refresh_token)
     session.commit()
 
-    token_expiration = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires=token_expiration
-    )
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(token=refresh_token.token, token_type="refresh")
 
 
 @router.post("/refresh", response_model=Token)
@@ -177,9 +167,10 @@ async def get_refresh_token(
         raise HTTPException(status_code=404, detail="Token has been voided")
 
     access_token = create_access_token(
-        data={"sub": token.user_email}, expires=timedelta(minutes=10)
+        data={"sub": token.user_email},
+        expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(token=access_token, token_type="bearer")
 
 
 @router.post("/signout")
