@@ -123,6 +123,11 @@ async def auth_google(code: str, session: Session = Depends(get_session)):
         session.commit()
         user = db_user
 
+    # Creating refresh token
+    refresh_token = create_refresh_token(user.email)
+    session.add(refresh_token)
+    session.commit()
+
     token_expiration = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires=token_expiration
@@ -130,7 +135,7 @@ async def auth_google(code: str, session: Session = Depends(get_session)):
     return Token(access_token=access_token, token_type="bearer")
 
 
-@router.post("/token", summary="Login endpoint for email/password")
+@router.post("/login/password", summary="Login endpoint for email/password")
 async def login_for_token(
     *,
     session: Session = Depends(get_session),

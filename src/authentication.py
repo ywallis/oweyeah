@@ -29,7 +29,7 @@ google_redirect_url = os.getenv("GOOGLE_REDIRECT_URI")
 if secret_key is None:
     raise Exception("You need to set SECRET_KEY as an environment variable")
 
-oauth2_scheme = OAuth2PasswordBearer(auto_error=False, tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(auto_error=False, tokenUrl="login/password")
 google_scheme = HTTPBearer(auto_error=False, scheme_name="Google OAuth")
 
 
