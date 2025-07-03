@@ -26,15 +26,6 @@ from src.utils import check_hash, get_session, hash_password
 router = APIRouter()
 
 
-@router.get("/opaquetokens/", response_model=list[RefreshToken])
-def fetch_flats(
-    *,
-    session: Session = Depends(get_session),
-):
-    tokens = session.exec(select(RefreshToken)).all()
-    return tokens
-
-
 @router.get(
     "/login/google", summary="Initiate Google OAuth Login", response_model=TokenUrl
 )
@@ -153,7 +144,7 @@ async def login_for_token(
     return Token(token=refresh_token.token, token_type="refresh")
 
 
-@router.post("/refresh", response_model=Token)
+@router.post("/login/refresh", response_model=Token)
 async def get_refresh_token(
     *,
     refresh_token: str,
@@ -173,7 +164,7 @@ async def get_refresh_token(
     return Token(token=access_token, token_type="bearer")
 
 
-@router.post("/signout")
+@router.post("/login/signout")
 async def void_refresh_token(
     *,
     session: Session = Depends(get_session),
@@ -192,12 +183,12 @@ async def void_refresh_token(
     return {"deleted": "ok"}
 
 
-@router.get("/me", response_model=User)
+@router.get("/login/me", response_model=User)
 async def read_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@router.post("/request_password_reset")
+@router.post("/login/request_password_reset")
 async def request_password_reset(
     email: EmailStr,
     session: Session = Depends(get_session),
@@ -214,7 +205,7 @@ async def request_password_reset(
     return {"token": access_token}
 
 
-@router.post("/reset_password")
+@router.post("/login/reset_password")
 async def reset_password(
     data: ResetPasswordRequest,
     session: Session = Depends(get_session),

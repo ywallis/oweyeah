@@ -9,7 +9,6 @@ from fastapi.exceptions import HTTPException
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
-    OAuth2PasswordBearer,
 )
 from jwt.exceptions import InvalidTokenError
 from sqlmodel import Session, select
@@ -18,7 +17,7 @@ from src.models import RefreshToken, ResetPasswordRequest, TokenData, User
 from src.utils import get_session
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 10
 
 load_dotenv()
 secret_key = os.getenv("SECRET_KEY")
@@ -29,7 +28,6 @@ google_redirect_url = os.getenv("GOOGLE_REDIRECT_URI")
 if secret_key is None:
     raise Exception("You need to set SECRET_KEY as an environment variable")
 
-# oauth2_scheme = OAuth2PasswordBearer(auto_error=False, tokenUrl="login/password")
 bearer_scheme = HTTPBearer(auto_error=False, scheme_name="Bearer Token Authentication")
 
 
@@ -73,15 +71,8 @@ def extract_user(reset_data: ResetPasswordRequest):
 async def get_current_user(
     *,
     session: Session = Depends(get_session),
-    # pw_token: str | None = Depends(oauth2_scheme),
     http_token: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ):
-    # token = None
-    # if google_token and pw_token:
-    #     token = google_token.credentials
-    # elif pw_token:
-    #     token = pw_token
-
     if not http_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
