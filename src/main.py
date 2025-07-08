@@ -21,7 +21,6 @@ origins = ["http://localhost:8081", "https://oy.yannwallis.com"]
 app = FastAPI(lifespan=lifespan)
 
 
-app.add_middleware(LoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -30,6 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# app.add_middleware(LoggingMiddleware)
 
 app.include_router(users.router)
 app.include_router(flats.router)
