@@ -55,14 +55,18 @@ async def login_google():
     response_model=Token,
     summary="Handle Google OAuth callback and issue internal token. Creates new user if none exists.",
 )
-async def auth_google(code: str, session: Session = Depends(get_session)):
+async def auth_google(
+    code: str, redirect_uri: str | None = None, session: Session = Depends(get_session)
+):
     """This endpoint handles the callback from Google after the user grants permission."""
+    if redirect_uri is None:
+        redirect_uri = google_redirect_url
     token_url = "https://accounts.google.com/o/oauth2/token"
     data = {
         "code": code,
         "client_id": google_client_id,
         "client_secret": google_client_secret,
-        "redirect_uri": google_redirect_url,
+        "redirect_uri": redirect_uri,
         "grant_type": "authorization_code",
     }
     response = requests.post(token_url, data=data)
