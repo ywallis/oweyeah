@@ -58,6 +58,126 @@ async def login_google():
     return TokenUrl(url=url)
 
 
+@router.post("/login/password", summary="Login endpoint for email/password")
+async def login_for_token(
+    *,
+    session: Session = Depends(get_session),
+    form_data: OAuth2PasswordRequestForm = Depends(),
+) -> Token:
+    """This endpoint allows logging in with a standard OAuth password request form. The email is used as username."""
+    statement = select(User).where(User.email == form_data.username)
+    user = session.exec(statement).one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Cannot authenticate")
+    if user.hashed_password is None:
+        raise HTTPException(status_code=404, detail="Cannot authenticate")
+    if not check_hash(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=404, detail="Cannot authenticate")
+
+    if user.id is None:
+        raise HTTPException(status_code=404, detail="Cannot authenticate")
+
+    # Creating refresh token
+    refresh_token = create_refresh_token(user.email, user.id)
+    session.add(refresh_token)
+    session.commit()
+
+    return Token(token=refresh_token.token, token_type="refresh")
+
+
+@router.post(
+    "/login/refresh",
+    response_model=Token,
+    summary="Generates an access token from a refresh token",
+)
+async def get_access_token(
+    *,
+    refresh_token: RefreshTokenRequest,
+    session: Session = Depends(get_session),
+):
+    statement = select(RefreshToken).where(
+        RefreshToken.token == refresh_token.refresh_token
+    )
+    token = session.exec(statement).one_or_none()
+    if not token:
+        raise HTTPException(status_code=404, detail="Token not found")
+    if not token.valid:
+        raise HTTPException(status_code=404, detail="Token has been voided")
+
+    access_token = create_access_token(
+        data={"sub": str(token.user_id)},
+        expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return Token(token=access_token, token_type="bearer")
+
+
+@router.post("/login/signout", summary="Signs the user out of a single or all locations.")
+async def void_refresh_token(
+    *,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+    single_token: RefreshTokenRequest | None,
+):
+    """If a single token is provided, this endpoint voids the token. If none are provided, all refresh tokens for the signed in user are voided."""
+
+    if single_token is None:
+        statement = select(RefreshToken).where(
+            RefreshToken.user_email == current_user.email
+        )
+        tokens = session.exec(statement).all()
+    else:
+        statement = select(RefreshToken).where(
+            RefreshToken.token == single_token.refresh_token
+        )
+        tokens = session.exec(statement).all()
+    if len(tokens) == 0:
+        raise HTTPException(status_code=404, detail="No tokens found")
+    for token in tokens:
+        token.valid = False
+        session.add(token)
+    session.commit()
+    return {"deleted": "ok"}
+
+
+@router.post("/login/request_password_reset")
+async def request_password_reset(
+    email: EmailStr,
+    session: Session = Depends(get_session),
+):
+    statement = select(User).where(User.email == email)
+    user = session.exec(statement).one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    token_expiration = timedelta(minutes=5)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires=token_expiration
+    )
+    return {"token": access_token}
+
+
+@router.post("/login/reset_password")
+async def reset_password(
+    data: ResetPasswordRequest,
+    session: Session = Depends(get_session),
+):
+    email = extract_user(data)
+
+    statement = select(User).where(User.email == email)
+    user = session.exec(statement).one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.hashed_password = hash_password(data.new_password)
+    session.commit()
+    return {"password_change": "ok"}
+
+
+@router.get("/login/me", response_model=UserPublic)
+async def read_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
 @router.get(
     "/auth/google",
     response_model=Token,
@@ -135,114 +255,3 @@ async def auth_google(
     session.commit()
 
     return Token(token=refresh_token.token, token_type="refresh")
-
-
-@router.post("/login/password", summary="Login endpoint for email/password")
-async def login_for_token(
-    *,
-    session: Session = Depends(get_session),
-    form_data: OAuth2PasswordRequestForm = Depends(),
-) -> Token:
-    """This endpoint allows logging in with a standard OAuth password request form. The email is used as username."""
-    statement = select(User).where(User.email == form_data.username)
-    user = session.exec(statement).one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="Cannot authenticate")
-    if user.hashed_password is None:
-        raise HTTPException(status_code=404, detail="Cannot authenticate")
-    if not check_hash(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=404, detail="Cannot authenticate")
-
-    if user.id is None:
-        raise HTTPException(status_code=404, detail="Cannot authenticate")
-
-    # Creating refresh token
-    refresh_token = create_refresh_token(user.email, user.id)
-    session.add(refresh_token)
-    session.commit()
-
-    return Token(token=refresh_token.token, token_type="refresh")
-
-
-@router.post(
-    "/login/refresh",
-    response_model=Token,
-    summary="Generates an access token from a refresh token",
-)
-async def get_access_token(
-    *,
-    refresh_token: RefreshTokenRequest,
-    session: Session = Depends(get_session),
-):
-    statement = select(RefreshToken).where(
-        RefreshToken.token == refresh_token.refresh_token
-    )
-    token = session.exec(statement).one_or_none()
-    if not token:
-        raise HTTPException(status_code=404, detail="Token not found")
-    if not token.valid:
-        raise HTTPException(status_code=404, detail="Token has been voided")
-
-    access_token = create_access_token(
-        data={"sub": str(token.user_id)},
-        expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-    return Token(token=access_token, token_type="bearer")
-
-
-@router.post("/login/signout")
-async def void_refresh_token(
-    *,
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-):
-    statement = select(RefreshToken).where(
-        RefreshToken.user_email == current_user.email
-    )
-    tokens = session.exec(statement).all()
-    if len(tokens) == 0:
-        raise HTTPException(status_code=404, detail="No tokens found")
-    for token in tokens:
-        token.valid = False
-        session.add(token)
-    session.commit()
-    return {"deleted": "ok"}
-
-
-@router.get("/login/me", response_model=UserPublic)
-async def read_me(current_user: User = Depends(get_current_user)):
-    return current_user
-
-
-@router.post("/login/request_password_reset")
-async def request_password_reset(
-    email: EmailStr,
-    session: Session = Depends(get_session),
-):
-    statement = select(User).where(User.email == email)
-    user = session.exec(statement).one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    token_expiration = timedelta(minutes=5)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires=token_expiration
-    )
-    return {"token": access_token}
-
-
-@router.post("/login/reset_password")
-async def reset_password(
-    data: ResetPasswordRequest,
-    session: Session = Depends(get_session),
-):
-    email = extract_user(data)
-
-    statement = select(User).where(User.email == email)
-    user = session.exec(statement).one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user.hashed_password = hash_password(data.new_password)
-    session.commit()
-    return {"password_change": "ok"}

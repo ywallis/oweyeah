@@ -1,8 +1,8 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from src.authentication import get_current_user
 from src.buy_in import item_buy_in
@@ -23,8 +23,13 @@ router = APIRouter()
 
 
 @router.post("/flats/", response_model=FlatPublicWithUsers)
-def add_flat(*, session: Session = Depends(get_session), flat: FlatCreate):
-    db_first_user = session.get(User, flat.first_user_id)
+def add_flat(
+    *,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    flat: FlatCreate,
+):
+    db_first_user = session.get(User, current_user.id)
     if not db_first_user:
         raise HTTPException(status_code=404, detail="First user not found")
     db_flat = Flat.model_validate(flat)
@@ -33,17 +38,6 @@ def add_flat(*, session: Session = Depends(get_session), flat: FlatCreate):
     session.commit()
     session.refresh(db_flat)
     return db_flat
-
-
-@router.get("/flats/", response_model=list[FlatPublic])
-def fetch_flats(
-    *,
-    session: Session = Depends(get_session),
-    offset: int = 0,
-    limit: int = Query(default=10, le=10),
-):
-    flats = session.exec(select(Flat).offset(offset).limit(limit)).all()
-    return flats
 
 
 @router.get("/flats/{flat_id}", response_model=FlatPublicWithUsers)

@@ -36,8 +36,8 @@ app.include_router(users.router)
 app.include_router(flats.router)
 app.include_router(items.router)
 app.include_router(transactions.router)
-app.include_router(reset.router)
 app.include_router(login.router)
+app.include_router(reset.router)
 
 
 @app.get("/version", response_model=AppVersion)

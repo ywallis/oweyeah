@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from src.authentication import get_current_user
 from src.errors import unauthorized_error
@@ -32,17 +32,6 @@ def add_user(*, session: Session = Depends(get_session), user: UserCreate):
     except IntegrityError:
         session.rollback()
         raise HTTPException(status_code=400, detail="Email already exists")
-
-
-@router.get("/users/", response_model=list[UserPublic])
-def fetch_users(
-    *,
-    session: Session = Depends(get_session),
-    offset: int = 0,
-    limit: int = Query(default=10, le=10),
-):
-    users = session.exec(select(User).offset(offset).limit(limit)).all()
-    return users
 
 
 @router.get("/users/{user_id}", response_model=UserPublicWithItems)

@@ -24,19 +24,6 @@ def test_add_user(client: TestClient):
     assert data["flat_id"] == "0"
 
 
-def test_fetch_users(client: TestClient, session: Session, user_1: User, user_2: User):
-    session.add(user_1)
-    session.add(user_2)
-    session.commit()
-
-    response = client.get("/users/")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 2
-    assert data[0]["first_name"] == "Yann"
-    assert data[1]["first_name"] == "Ilias"
-
-
 def test_fetch_user(client: TestClient, session: Session, user_1: User):
     session.add(user_1)
     session.commit()
