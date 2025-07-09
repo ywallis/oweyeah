@@ -111,7 +111,9 @@ async def get_access_token(
     return Token(token=access_token, token_type="bearer")
 
 
-@router.post("/login/signout", summary="Signs the user out of a single or all locations.")
+@router.post(
+    "/login/signout", summary="Signs the user out of a single or all locations."
+)
 async def void_refresh_token(
     *,
     session: Session = Depends(get_session),
