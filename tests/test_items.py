@@ -14,7 +14,7 @@ def test_add_item(
         "/items/",
         json={
             "name": "TV",
-            "flat_id": 1,
+            "flat_id": flat.id,
             "is_bill": False,
             "initial_value": 1000,
             "purchase_date": "2025-01-01",

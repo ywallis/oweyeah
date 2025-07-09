@@ -21,7 +21,7 @@ def test_add_user(client: TestClient):
     assert data["first_name"] == "Yann"
     assert data["last_name"] == "Wallis"
     assert data["email"] == "y.w@g.c"
-    assert data["flat_id"] == 0
+    assert data["flat_id"] == "0"
 
 
 def test_fetch_users(client: TestClient, session: Session, user_1: User, user_2: User):
@@ -88,8 +88,8 @@ def test_fetch_user_transactions(
     session.commit()
     session.refresh(user_1)
     session.refresh(user_2)
-    assert user_1.flat_id is flat_1.id
-    assert user_2.flat_id is flat_1.id
+    assert user_1.flat_id == flat_1.id
+    assert user_2.flat_id == flat_1.id
 
     item_1.flat_id = flat_1.id
     item_1.users = flat_1.users

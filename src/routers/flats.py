@@ -22,7 +22,7 @@ from src.utils import get_session
 router = APIRouter()
 
 
-@router.post("/flats/", response_model=FlatPublic)
+@router.post("/flats/", response_model=FlatPublicWithUsers)
 def add_flat(*, session: Session = Depends(get_session), flat: FlatCreate):
     db_first_user = session.get(User, flat.first_user_id)
     if not db_first_user:
@@ -51,7 +51,7 @@ def fetch_flat(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
+    flat_id: str,
 ):
     flat = session.get(Flat, flat_id)
     if not flat:
@@ -66,7 +66,7 @@ def update_flat(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
+    flat_id: str,
     flat: FlatUpdate,
 ):
     db_flat = session.get(Flat, flat_id)
@@ -87,7 +87,7 @@ def delete_flat(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
+    flat_id: str,
 ):
     db_flat = session.get(User, flat_id)
     if not db_flat:
@@ -108,9 +108,9 @@ def user_move_in(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
-    user_id: int,
-    exclude_items: list[int],
+    flat_id: str,
+    user_id: str,
+    exclude_items: list[str],
     date: date,
 ):
     """A move-in transaction is initiated. This means that:
@@ -148,8 +148,8 @@ def user_move_out(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
-    user_id: int,
+    flat_id: str,
+    user_id: str,
     date: date,
 ):
     """A move-out transaction is initiated. This means that:

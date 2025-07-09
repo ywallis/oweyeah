@@ -54,7 +54,7 @@ def fetch_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
+    item_id: str,
 ):
     item = session.get(Item, item_id)
     if not item:
@@ -69,7 +69,7 @@ def fetch_item_with_transactions(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
+    item_id: str,
 ):
     item = session.get(Item, item_id)
     if not item:
@@ -84,7 +84,7 @@ def update_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
+    item_id: str,
     item: ItemUpdate,
 ):
     db_item = session.get(Item, item_id)
@@ -105,7 +105,7 @@ def delete_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
+    item_id: str,
 ):
     db_item = session.get(Item, item_id)
     if not db_item:
@@ -122,8 +122,8 @@ def add_user_to_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
-    user_id: int,
+    item_id: str,
+    user_id: str,
     date: date = Query(...),
 ):
     """This adds a User to an item and creates the associated credits/debts."""
@@ -151,8 +151,8 @@ def remove_user_from_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
-    user_id: int,
+    item_id: str,
+    user_id: str,
     date: date,
 ):
     """This removes a User from an item and creates the associated credits/debts."""

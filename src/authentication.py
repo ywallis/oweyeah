@@ -35,7 +35,7 @@ def create_opaque_token() -> str:
     return secrets.token_urlsafe(64)
 
 
-def create_refresh_token(user_email: str, user_id: int) -> RefreshToken:
+def create_refresh_token(user_email: str, user_id: str) -> RefreshToken:
     opaque_token = create_opaque_token()
     refresh_token_expiration = datetime.now() + timedelta(days=30)
     refresh_token = RefreshToken(

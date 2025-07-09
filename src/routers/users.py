@@ -50,7 +50,7 @@ def fetch_user(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    user_id: int,
+    user_id: str,
 ):
     user = session.get(User, user_id)
     if not user:
@@ -65,7 +65,7 @@ def fetch_user_with_transactions(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    user_id: int,
+    user_id: str,
 ):
     user = session.get(User, user_id)
     if not user:
@@ -80,7 +80,7 @@ def update_user(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    user_id: int,
+    user_id: str,
     user: UserUpdate,
 ):
     db_user = session.get(User, user_id)
@@ -107,7 +107,7 @@ def delete_user(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    user_id: int,
+    user_id: str,
 ):
     db_user = session.get(User, user_id)
     if not db_user:
