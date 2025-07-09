@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from src.authentication import get_current_user
 from src.errors import unauthorized_error
@@ -34,23 +34,12 @@ def add_user(*, session: Session = Depends(get_session), user: UserCreate):
         raise HTTPException(status_code=400, detail="Email already exists")
 
 
-@router.get("/users/", response_model=list[UserPublic])
-def fetch_users(
-    *,
-    session: Session = Depends(get_session),
-    offset: int = 0,
-    limit: int = Query(default=10, le=10),
-):
-    users = session.exec(select(User).offset(offset).limit(limit)).all()
-    return users
-
-
 @router.get("/users/{user_id}", response_model=UserPublicWithItems)
 def fetch_user(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    user_id: int,
+    user_id: str,
 ):
     user = session.get(User, user_id)
     if not user:
@@ -65,7 +54,7 @@ def fetch_user_with_transactions(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    user_id: int,
+    user_id: str,
 ):
     user = session.get(User, user_id)
     if not user:
@@ -80,7 +69,7 @@ def update_user(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    user_id: int,
+    user_id: str,
     user: UserUpdate,
 ):
     db_user = session.get(User, user_id)
@@ -107,7 +96,7 @@ def delete_user(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    user_id: int,
+    user_id: str,
 ):
     db_user = session.get(User, user_id)
     if not db_user:

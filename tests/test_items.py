@@ -14,7 +14,7 @@ def test_add_item(
         "/items/",
         json={
             "name": "TV",
-            "flat_id": 1,
+            "flat_id": flat.id,
             "is_bill": False,
             "initial_value": 1000,
             "purchase_date": "2025-01-01",
@@ -36,16 +36,6 @@ def test_add_item(
     if not db_flat:
         raise Exception("Flat could not be loaded")
     assert db_item in db_flat.items
-
-
-def test_fetch_items(client: TestClient, flat_user_item: tuple[Flat, User, Item]):
-    flat, user, item = flat_user_item
-
-    response = client.get("/items/")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == item.id
 
 
 def test_fetch_item(client: TestClient, flat_user_item: tuple[Flat, User, Item]):

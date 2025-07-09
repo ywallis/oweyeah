@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from src.authentication import get_current_user
 from src.buy_in import item_buy_in
@@ -24,29 +24,28 @@ router = APIRouter()
 
 
 @router.post("/items/", response_model=ItemPublicWithUsers)
-def add_item(*, session: Session = Depends(get_session), item: ItemCreate):
+def add_item(
+    *,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    item: ItemCreate,
+):
+    if current_user.flat is None:
+        raise HTTPException(
+            status_code=400,
+            detail="User must have an assigned flat before adding items",
+        )
+    flat = session.get(Flat, current_user.flat.id)
+    if not flat:
+        raise HTTPException(status_code=404, detail="Flat not found")
     db_item = Item.model_validate(item)
     session.add(db_item)
     session.commit()
     session.refresh(db_item)
-    flat = session.get(Flat, db_item.flat.id)
-    if not flat:
-        raise HTTPException(status_code=404, detail="Flat not found")
     db_item.users = flat.users
     session.commit()
     session.refresh(db_item)
     return db_item
-
-
-@router.get("/items/", response_model=list[ItemPublicWithUsers])
-def fetch_items(
-    *,
-    session: Session = Depends(get_session),
-    offset: int = 0,
-    limit: int = Query(default=10, le=10),
-):
-    items = session.exec(select(Item).offset(offset).limit(limit)).all()
-    return items
 
 
 @router.get("/items/{item_id}", response_model=ItemPublicWithUsers)
@@ -54,7 +53,7 @@ def fetch_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
+    item_id: str,
 ):
     item = session.get(Item, item_id)
     if not item:
@@ -69,7 +68,7 @@ def fetch_item_with_transactions(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
+    item_id: str,
 ):
     item = session.get(Item, item_id)
     if not item:
@@ -84,7 +83,7 @@ def update_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
+    item_id: str,
     item: ItemUpdate,
 ):
     db_item = session.get(Item, item_id)
@@ -105,7 +104,7 @@ def delete_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
+    item_id: str,
 ):
     db_item = session.get(Item, item_id)
     if not db_item:
@@ -122,8 +121,8 @@ def add_user_to_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
-    user_id: int,
+    item_id: str,
+    user_id: str,
     date: date = Query(...),
 ):
     """This adds a User to an item and creates the associated credits/debts."""
@@ -151,8 +150,8 @@ def remove_user_from_item(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    item_id: int,
-    user_id: int,
+    item_id: str,
+    user_id: str,
     date: date,
 ):
     """This removes a User from an item and creates the associated credits/debts."""

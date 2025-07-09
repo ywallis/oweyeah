@@ -1,8 +1,8 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from src.authentication import get_current_user
 from src.buy_in import item_buy_in
@@ -22,9 +22,14 @@ from src.utils import get_session
 router = APIRouter()
 
 
-@router.post("/flats/", response_model=FlatPublic)
-def add_flat(*, session: Session = Depends(get_session), flat: FlatCreate):
-    db_first_user = session.get(User, flat.first_user_id)
+@router.post("/flats/", response_model=FlatPublicWithUsers)
+def add_flat(
+    *,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    flat: FlatCreate,
+):
+    db_first_user = session.get(User, current_user.id)
     if not db_first_user:
         raise HTTPException(status_code=404, detail="First user not found")
     db_flat = Flat.model_validate(flat)
@@ -35,23 +40,12 @@ def add_flat(*, session: Session = Depends(get_session), flat: FlatCreate):
     return db_flat
 
 
-@router.get("/flats/", response_model=list[FlatPublic])
-def fetch_flats(
-    *,
-    session: Session = Depends(get_session),
-    offset: int = 0,
-    limit: int = Query(default=10, le=10),
-):
-    flats = session.exec(select(Flat).offset(offset).limit(limit)).all()
-    return flats
-
-
 @router.get("/flats/{flat_id}", response_model=FlatPublicWithUsers)
 def fetch_flat(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
+    flat_id: str,
 ):
     flat = session.get(Flat, flat_id)
     if not flat:
@@ -66,7 +60,7 @@ def update_flat(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
+    flat_id: str,
     flat: FlatUpdate,
 ):
     db_flat = session.get(Flat, flat_id)
@@ -87,7 +81,7 @@ def delete_flat(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
+    flat_id: str,
 ):
     db_flat = session.get(User, flat_id)
     if not db_flat:
@@ -108,9 +102,9 @@ def user_move_in(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
-    user_id: int,
-    exclude_items: list[int],
+    flat_id: str,
+    user_id: str,
+    exclude_items: list[str],
     date: date,
 ):
     """A move-in transaction is initiated. This means that:
@@ -148,8 +142,8 @@ def user_move_out(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    flat_id: int,
-    user_id: int,
+    flat_id: str,
+    user_id: str,
     date: date,
 ):
     """A move-out transaction is initiated. This means that:

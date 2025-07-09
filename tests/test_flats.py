@@ -16,17 +16,7 @@ def test_add_flat(client: TestClient, session: Session, user_1: User):
     data = response.json()
     assert data["name"] == "Olympus"
     print(data)
-    assert data["id"] == user_1.id
-
-
-def test_get_flats(client: TestClient, flat_and_user_1: tuple[Flat, User]):
-    flat_1, user_1 = flat_and_user_1
-    response = client.get("/flats/")
-
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["name"] == flat_1.name
+    assert data["users"][0]["id"] == user_1.id
 
 
 def test_get_flat(client: TestClient, flat_and_user_1: tuple[Flat, User]):

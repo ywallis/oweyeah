@@ -5,26 +5,12 @@ from sqlmodel import Session
 from src.authentication import get_current_user
 from src.errors import unauthorized_error
 from src.models import (
-    Transaction,
-    TransactionCreate,
     TransactionPublic,
-    TransactionPublicWithUsers,
     User,
 )
 from src.utils import get_session
 
 router = APIRouter()
-
-
-@router.post("/transactions/", response_model=TransactionPublicWithUsers)
-def add_transaction(
-    *, session: Session = Depends(get_session), transaction: TransactionCreate
-):
-    db_transaction = Transaction.model_validate(transaction)
-    session.add(db_transaction)
-    session.commit()
-    session.refresh(db_transaction)
-    return db_transaction
 
 
 @router.get("/transactions/{user_id}/debts", response_model=list[TransactionPublic])

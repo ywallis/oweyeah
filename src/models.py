@@ -1,8 +1,51 @@
+import uuid
 from datetime import date, datetime
 
+from pydantic import BaseModel
+from sqlalchemy import String
 from sqlmodel import Field, Relationship, SQLModel
 
 from src.timestamps import TimestampMixin
+
+
+class AppVersion(BaseModel):
+    version: str
+
+
+class TokenUrl(BaseModel):
+    url: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class Token(BaseModel):
+    token: str
+    token_type: str
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class TokenData(BaseModel):
+    id: str | None = None
+
+
+class RefreshTokenBase(TimestampMixin, SQLModel):
+    token: str
+    user_email: str = Field(foreign_key="user.email")
+    user_id: str = Field(foreign_key="user.id", sa_type=String)
+    expiration: datetime
+    valid: bool
+
+
+class RefreshToken(RefreshTokenBase, table=True):
+    id: str | None = Field(
+        default_factory=lambda: str(uuid.uuid4()), primary_key=True, sa_type=String
+    )
 
 
 class FlatBase(TimestampMixin, SQLModel):
@@ -10,13 +53,15 @@ class FlatBase(TimestampMixin, SQLModel):
 
 
 class Flat(FlatBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+    id: str | None = Field(
+        default_factory=lambda: str(uuid.uuid4()), primary_key=True, sa_type=String
+    )
     users: list["User"] = Relationship(back_populates="flat")
     items: list["Item"] = Relationship(back_populates="flat")
 
 
 class FlatPublic(FlatBase):
-    id: int
+    id: str
 
 
 class FlatPublicWithUsers(FlatPublic):
@@ -25,7 +70,7 @@ class FlatPublicWithUsers(FlatPublic):
 
 class FlatCreate(SQLModel):
     name: str
-    first_user_id: int
+    first_user_id: str
 
 
 class FlatUpdate(SQLModel):
@@ -33,25 +78,30 @@ class FlatUpdate(SQLModel):
 
 
 class UserItems(SQLModel, table=True):
-    user_id: int | None = Field(foreign_key="user.id", primary_key=True)
-    item_id: int | None = Field(foreign_key="item.id", primary_key=True)
+    user_id: str | None = Field(foreign_key="user.id", primary_key=True, sa_type=String)
+    item_id: str | None = Field(foreign_key="item.id", primary_key=True, sa_type=String)
 
 
 class UserItemsPublic(SQLModel):
-    user_id: int
-    item_id: int
+    user_id: str
+    item_id: str
 
 
 class UserBase(TimestampMixin, SQLModel):
     first_name: str
     last_name: str
     email: str = Field(unique=True)
-    flat_id: int | None = Field(default=None, foreign_key="flat.id")
+    flat_id: str | None = Field(default=None, foreign_key="flat.id", sa_type=String)
     active: bool = Field(default=True)
 
 
 class User(UserBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+    id: str | None = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        primary_key=True,
+        index=True,
+        sa_type=String,
+    )
     hashed_password: str | None = Field(default=None)
     flat: Flat | None = Relationship(back_populates="users")
     items: list["Item"] = Relationship(back_populates="users", link_model=UserItems)
@@ -66,11 +116,11 @@ class User(UserBase, table=True):
 
 
 class UserPublic(UserBase):
-    id: int
+    id: str
 
 
 class UserPublicWithTransactions(UserBase):
-    id: int
+    id: str
     credits: list["Transaction"] | None = Field(default_factory=list)
     debts: list["Transaction"] | None = Field(default_factory=list)
 
@@ -83,7 +133,7 @@ class UserCreate(SQLModel):
     first_name: str
     last_name: str
     email: str = Field(unique=True)
-    flat_id: int | None = Field(default=None, foreign_key="flat.id")
+    flat_id: str | None = Field(default=None, foreign_key="flat.id", sa_type=String)
     password: str
 
 
@@ -91,7 +141,7 @@ class UserCreateNP(SQLModel):
     first_name: str
     last_name: str
     email: str = Field(unique=True)
-    flat_id: int | None = Field(default=None, foreign_key="flat.id")
+    flat_id: str | None = Field(default=None, foreign_key="flat.id", sa_type=String)
 
 
 class UserUpdate(SQLModel):
@@ -99,13 +149,16 @@ class UserUpdate(SQLModel):
     last_name: str | None = None
     email: str | None = None
     password: str | None = None
-    flat_id: int | None = None
+    flat_id: str | None = Field(default=None, sa_type=String)
 
 
 class ItemBase(TimestampMixin, SQLModel):
     name: str = Field(schema_extra={"examples": ["TV"]})
-    flat_id: int | None = Field(
-        default=None, foreign_key="flat.id", schema_extra={"examples": [1]}
+    flat_id: str | None = Field(
+        default=None,
+        foreign_key="flat.id",
+        schema_extra={"examples": [1]},
+        sa_type=String,
     )
     is_bill: bool
     initial_value: float = Field(schema_extra={"examples": [1000.0]})
@@ -116,14 +169,16 @@ class ItemBase(TimestampMixin, SQLModel):
 
 
 class Item(ItemBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+    id: str | None = Field(
+        default_factory=lambda: str(uuid.uuid4()), primary_key=True, sa_type=String
+    )
     flat: Flat = Relationship(back_populates="items")
     users: list[User] = Relationship(back_populates="items", link_model=UserItems)
     transactions: list["Transaction"] = Relationship(back_populates="item")
 
 
 class ItemPublic(ItemBase):
-    id: int
+    id: str
 
 
 class ItemPublicWithUsers(ItemPublic):
@@ -136,8 +191,11 @@ class ItemPublicWithTransactions(ItemPublic):
 
 class ItemCreate(SQLModel):
     name: str = Field(schema_extra={"examples": ["TV"]})
-    flat_id: int | None = Field(
-        default=None, foreign_key="flat.id", schema_extra={"examples": [1]}
+    flat_id: str | None = Field(
+        default=None,
+        foreign_key="flat.id",
+        schema_extra={"examples": [1]},
+        sa_type=String,
     )
     is_bill: bool
     initial_value: float = Field(schema_extra={"examples": [1000.0]})
@@ -158,15 +216,17 @@ class ItemUpdate(SQLModel):
 
 
 class TransactionBase(TimestampMixin, SQLModel):
-    creditor_id: int = Field(foreign_key="user.id")
-    debtor_id: int = Field(foreign_key="user.id")
-    item_id: int = Field(foreign_key="item.id")
+    creditor_id: str = Field(foreign_key="user.id", sa_type=String)
+    debtor_id: str = Field(foreign_key="user.id", sa_type=String)
+    item_id: str = Field(foreign_key="item.id", sa_type=String)
     amount: float
     paid: bool
 
 
 class Transaction(TransactionBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+    id: str | None = Field(
+        default_factory=lambda: str(uuid.uuid4()), primary_key=True, sa_type=String
+    )
     creditor: User = Relationship(
         back_populates="credits",
         sa_relationship_kwargs={"foreign_keys": "[Transaction.creditor_id]"},
@@ -187,10 +247,10 @@ class TransactionUpdate(SQLModel):
 
 
 class TransactionPublic(TransactionBase):
-    id: int
+    id: str
 
 
 class TransactionPublicWithUsers(TransactionBase):
-    id: int
+    id: str
     creditor: UserPublic
     debtor: UserPublic

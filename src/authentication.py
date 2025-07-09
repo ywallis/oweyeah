@@ -1,4 +1,5 @@
 import os
+import secrets
 from datetime import datetime, timedelta
 
 import jwt
@@ -8,17 +9,15 @@ from fastapi.exceptions import HTTPException
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
-    OAuth2PasswordBearer,
 )
 from jwt.exceptions import InvalidTokenError
-from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from src.models import User
+from src.models import RefreshToken, ResetPasswordRequest, TokenData, User
 from src.utils import get_session
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 10
 
 load_dotenv()
 secret_key = os.getenv("SECRET_KEY")
@@ -29,22 +28,25 @@ google_redirect_url = os.getenv("GOOGLE_REDIRECT_URI")
 if secret_key is None:
     raise Exception("You need to set SECRET_KEY as an environment variable")
 
-oauth2_scheme = OAuth2PasswordBearer(auto_error=False, tokenUrl="token")
-google_scheme = HTTPBearer(auto_error=False, scheme_name="Google OAuth")
+bearer_scheme = HTTPBearer(auto_error=False, scheme_name="Bearer Token Authentication")
 
 
-class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str
+def create_opaque_token() -> str:
+    return secrets.token_urlsafe(64)
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+def create_refresh_token(user_email: str, user_id: str) -> RefreshToken:
+    opaque_token = create_opaque_token()
+    refresh_token_expiration = datetime.now() + timedelta(days=30)
+    refresh_token = RefreshToken(
+        token=opaque_token,
+        user_email=user_email,
+        user_id=user_id,
+        expiration=refresh_token_expiration,
+        valid=True,
+    )
 
-
-class TokenData(BaseModel):
-    email: str | None = None
+    return refresh_token
 
 
 def create_access_token(data: dict, expires: timedelta | None = None):
@@ -70,35 +72,30 @@ def extract_user(reset_data: ResetPasswordRequest):
 async def get_current_user(
     *,
     session: Session = Depends(get_session),
-    pw_token: str | None = Depends(oauth2_scheme),
-    google_token: HTTPAuthorizationCredentials | None = Depends(google_scheme),
+    http_token: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ):
-    token = None
-    if google_token and pw_token:
-        token = google_token.credentials
-    elif pw_token:
-        token = pw_token
-
-    if not token:
+    if not http_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated: Missing Bearer token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    token = http_token.credentials
+
     try:
         payload = jwt.decode(token, secret_key, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if email is None:
+        id = payload.get("sub")
+        if id is None:
             raise HTTPException(
                 status_code=401, detail="Could not validate credentials"
             )
-        token_data = TokenData(email=email)
+        token_data = TokenData(id=id)
     except InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+        raise HTTPException(status_code=401, detail="Could not validate credentials 2")
 
-    statement = select(User).where(User.email == token_data.email)
+    statement = select(User).where(User.id == token_data.id)
     user = session.exec(statement).one_or_none()
     if not user:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+        raise HTTPException(status_code=401, detail="Could not validate credentials 3")
     return user
