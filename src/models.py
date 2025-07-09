@@ -8,6 +8,10 @@ from sqlmodel import Field, Relationship, SQLModel
 from src.timestamps import TimestampMixin
 
 
+class AppVersion(BaseModel):
+    version: str
+
+
 class TokenUrl(BaseModel):
     url: str
 
