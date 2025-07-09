@@ -20,13 +20,18 @@ class Token(BaseModel):
     token_type: str
 
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
 class TokenData(BaseModel):
-    email: str | None = None
+    id: str | None = None
 
 
 class RefreshTokenBase(TimestampMixin, SQLModel):
     token: str
     user_email: str = Field(foreign_key="user.email")
+    user_id: int = Field(foreign_key="user.id")
     expiration: datetime
     valid: bool
 

@@ -20,7 +20,15 @@ from src.authentication import (
     google_client_secret,
     google_redirect_url,
 )
-from src.models import RefreshToken, Token, TokenUrl, User, UserCreateNP
+from src.models import (
+    RefreshToken,
+    RefreshTokenRequest,
+    Token,
+    TokenUrl,
+    User,
+    UserCreateNP,
+    UserPublic,
+)
 from src.utils import check_hash, get_session, hash_password
 
 router = APIRouter()
@@ -61,7 +69,8 @@ async def auth_google(
     """This endpoint handles the callback from Google after the user grants permission."""
     if redirect_uri is None:
         redirect_uri = google_redirect_url
-    token_url = "https://accounts.google.com/o/oauth2/token"
+    token_url = "https://oauth2.googleapis.com/token"
+
     data = {
         "code": code,
         "client_id": google_client_id,
@@ -71,6 +80,7 @@ async def auth_google(
     }
     response = requests.post(token_url, data=data)
     response.raise_for_status()
+
     tokens = response.json()
     google_access_token = tokens.get("access_token")
     google_id_token = tokens.get("id_token")
@@ -114,10 +124,13 @@ async def auth_google(
         db_user = User.model_validate(new_User)
         session.add(db_user)
         session.commit()
+        session.refresh(db_user)
         user = db_user
 
+    if user.id is None:
+        raise HTTPException(status_code=404, detail="Unvalidated user id")
     # Creating refresh token
-    refresh_token = create_refresh_token(user.email)
+    refresh_token = create_refresh_token(user.email, user.id)
     session.add(refresh_token)
     session.commit()
 
@@ -140,21 +153,30 @@ async def login_for_token(
     if not check_hash(form_data.password, user.hashed_password):
         raise HTTPException(status_code=404, detail="Cannot authenticate")
 
+    if user.id is None:
+        raise HTTPException(status_code=404, detail="Cannot authenticate")
+
     # Creating refresh token
-    refresh_token = create_refresh_token(user.email)
+    refresh_token = create_refresh_token(user.email, user.id)
     session.add(refresh_token)
     session.commit()
 
     return Token(token=refresh_token.token, token_type="refresh")
 
 
-@router.post("/login/refresh", response_model=Token)
-async def get_refresh_token(
+@router.post(
+    "/login/refresh",
+    response_model=Token,
+    summary="Generates an access token from a refresh token",
+)
+async def get_access_token(
     *,
-    refresh_token: str,
+    refresh_token: RefreshTokenRequest,
     session: Session = Depends(get_session),
 ):
-    statement = select(RefreshToken).where(RefreshToken.token == refresh_token)
+    statement = select(RefreshToken).where(
+        RefreshToken.token == refresh_token.refresh_token
+    )
     token = session.exec(statement).one_or_none()
     if not token:
         raise HTTPException(status_code=404, detail="Token not found")
@@ -162,7 +184,7 @@ async def get_refresh_token(
         raise HTTPException(status_code=404, detail="Token has been voided")
 
     access_token = create_access_token(
-        data={"sub": token.user_email},
+        data={"sub": str(token.user_id)},
         expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     return Token(token=access_token, token_type="bearer")
@@ -187,7 +209,7 @@ async def void_refresh_token(
     return {"deleted": "ok"}
 
 
-@router.get("/login/me", response_model=User)
+@router.get("/login/me", response_model=UserPublic)
 async def read_me(current_user: User = Depends(get_current_user)):
     return current_user
 

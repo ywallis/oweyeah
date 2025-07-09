@@ -35,12 +35,13 @@ def create_opaque_token() -> str:
     return secrets.token_urlsafe(64)
 
 
-def create_refresh_token(user_email: str) -> RefreshToken:
+def create_refresh_token(user_email: str, user_id: int) -> RefreshToken:
     opaque_token = create_opaque_token()
     refresh_token_expiration = datetime.now() + timedelta(days=30)
     refresh_token = RefreshToken(
         token=opaque_token,
         user_email=user_email,
+        user_id=user_id,
         expiration=refresh_token_expiration,
         valid=True,
     )
@@ -84,17 +85,17 @@ async def get_current_user(
 
     try:
         payload = jwt.decode(token, secret_key, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if email is None:
+        id = payload.get("sub")
+        if id is None:
             raise HTTPException(
                 status_code=401, detail="Could not validate credentials"
             )
-        token_data = TokenData(email=email)
+        token_data = TokenData(id=id)
     except InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+        raise HTTPException(status_code=401, detail="Could not validate credentials 2")
 
-    statement = select(User).where(User.email == token_data.email)
+    statement = select(User).where(User.id == token_data.id)
     user = session.exec(statement).one_or_none()
     if not user:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+        raise HTTPException(status_code=401, detail="Could not validate credentials 3")
     return user
