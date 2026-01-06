@@ -29,6 +29,28 @@ def add_flat(
     session: Session = Depends(get_session),
     flat: FlatCreate,
 ):
+    """
+    Creates a new flat and assigns the current user as its first member.
+
+    Parameters
+    ----------
+    current_user : User
+        The authenticated user creating the flat.
+    session : Session
+        The database session.
+    flat : FlatCreate
+        The flat creation data.
+
+    Returns
+    -------
+    Flat
+        The created flat object with the user added.
+
+    Raises
+    ------
+    HTTPException
+        If the creating user cannot be found in the database.
+    """
     db_first_user = session.get(User, current_user.id)
     if not db_first_user:
         raise HTTPException(status_code=404, detail="First user not found")
@@ -47,6 +69,30 @@ def fetch_flat(
     current_user: User = Depends(get_current_user),
     flat_id: str,
 ):
+    """
+    Retrieves a flat by its ID.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    flat_id : str
+        The ID of the flat to retrieve.
+
+    Returns
+    -------
+    Flat
+        The flat object.
+
+    Raises
+    ------
+    HTTPException
+        If the flat is not found.
+    unauthorized_error
+        If the current user does not belong to the requested flat.
+    """
     flat = session.get(Flat, flat_id)
     if not flat:
         raise HTTPException(status_code=404, detail="Flat not found")
@@ -63,6 +109,32 @@ def update_flat(
     flat_id: str,
     flat: FlatUpdate,
 ):
+    """
+    Updates the details of a flat.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    flat_id : str
+        The ID of the flat to update.
+    flat : FlatUpdate
+        The new data for the flat.
+
+    Returns
+    -------
+    Flat
+        The updated flat object.
+
+    Raises
+    ------
+    HTTPException
+        If the flat is not found.
+    unauthorized_error
+        If the current user does not belong to the requested flat.
+    """
     db_flat = session.get(Flat, flat_id)
     if not db_flat:
         raise HTTPException(status_code=404, detail="Flat not found")
@@ -83,6 +155,30 @@ def delete_flat(
     current_user: User = Depends(get_current_user),
     flat_id: str,
 ):
+    """
+    Deletes a flat.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    flat_id : str
+        The ID of the flat to delete.
+
+    Returns
+    -------
+    dict
+        A confirmation message.
+
+    Raises
+    ------
+    HTTPException
+        If the flat is not found.
+    unauthorized_error
+        If the current user does not belong to the requested flat.
+    """
     db_flat = session.get(User, flat_id)
     if not db_flat:
         raise HTTPException(status_code=404, detail="Flat not found")
@@ -107,11 +203,40 @@ def user_move_in(
     exclude_items: list[str],
     date: date,
 ):
-    """A move-in transaction is initiated. This means that:
-    - The user is added to the flat.
-    - The user is added to all items from that flat, except those listed in the `exclude_items` list
-    - Credits/debts corresponding with a buy-in to every non-excluded item are created"""
+    """
+    Initiates a move-in transaction for a user into a flat.
 
+    This means that:
+    - The user is added to the flat.
+    - The user is added to all items from that flat, except those listed in the `exclude_items` list.
+    - Credits/debts corresponding with a buy-in to every non-excluded item are created.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    flat_id : str
+        The ID of the flat.
+    user_id : str
+        The ID of the user moving in.
+    exclude_items : list[str]
+        List of item IDs to exclude from the buy-in process.
+    date : date
+        The date of the move-in.
+
+    Returns
+    -------
+    User
+        The updated user object.
+
+    Raises
+    ------
+    HTTPException
+        If the flat or user is not found, or if the user is already in a flat,
+        or if the operation is unauthorized.
+    """
     db_flat = session.get(Flat, flat_id)
     if not db_flat:
         raise HTTPException(status_code=404, detail="Flat not found")
@@ -146,11 +271,38 @@ def user_move_out(
     user_id: str,
     date: date,
 ):
-    """A move-out transaction is initiated. This means that:
-    - The user is removed from the flat.
-    - The user is removed from all items in that flat
-    - Credits/debts corresponding with a buy-out from every item are created"""
+    """
+    Initiates a move-out transaction for a user from a flat.
 
+    This means that:
+    - The user is removed from the flat.
+    - The user is removed from all items in that flat.
+    - Credits/debts corresponding with a buy-out from every item are created.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    flat_id : str
+        The ID of the flat.
+    user_id : str
+        The ID of the user moving out.
+    date : date
+        The date of the move-out.
+
+    Returns
+    -------
+    User
+        The updated user object (now without flat).
+
+    Raises
+    ------
+    HTTPException
+        If the flat or user is not found, or if the user is not in the flat,
+        or if the user is the last one in the flat, or unauthorized access.
+    """
     db_flat = session.get(Flat, flat_id)
     if not db_flat:
         raise HTTPException(status_code=404, detail="Flat not found")

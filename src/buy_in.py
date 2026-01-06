@@ -11,6 +11,25 @@ from src.models import User
 
 
 def item_buy_in(session: Session, new_user: User, item: Item, date: date):
+    """
+    Calculates and records the buy-in transaction for a new user joining an item ownership.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    new_user : User
+        The user who is buying into the item.
+    item : Item
+        The item being bought into.
+    date : date
+        The date of the buy-in.
+
+    Raises
+    ------
+    HTTPException
+        If the item has no users, or if item/user IDs are undefined.
+    """
     if len(item.users) == 0:
         raise HTTPException(
             status_code=500, detail="Item should have at least one user"

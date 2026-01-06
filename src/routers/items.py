@@ -30,6 +30,28 @@ def add_item(
     session: Session = Depends(get_session),
     item: ItemCreate,
 ):
+    """
+    Adds a new item to the user's flat.
+
+    Parameters
+    ----------
+    current_user : User
+        The authenticated user.
+    session : Session
+        The database session.
+    item : ItemCreate
+        The item creation data.
+
+    Returns
+    -------
+    Item
+        The created item, associated with all users in the flat.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not in a flat or the flat cannot be found.
+    """
     if current_user.flat is None:
         raise HTTPException(
             status_code=400,
@@ -55,6 +77,30 @@ def fetch_item(
     current_user: User = Depends(get_current_user),
     item_id: str,
 ):
+    """
+    Retrieves an item by its ID.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    item_id : str
+        The ID of the item to retrieve.
+
+    Returns
+    -------
+    Item
+        The item object.
+
+    Raises
+    ------
+    HTTPException
+        If the item is not found.
+    unauthorized_error
+        If the item belongs to a different flat than the user.
+    """
     item = session.get(Item, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -70,6 +116,30 @@ def fetch_item_with_transactions(
     current_user: User = Depends(get_current_user),
     item_id: str,
 ):
+    """
+    Retrieves an item along with its associated transactions.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    item_id : str
+        The ID of the item.
+
+    Returns
+    -------
+    Item
+        The item object including transactions.
+
+    Raises
+    ------
+    HTTPException
+        If the item is not found.
+    unauthorized_error
+        If the item belongs to a different flat than the user.
+    """
     item = session.get(Item, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -86,6 +156,32 @@ def update_item(
     item_id: str,
     item: ItemUpdate,
 ):
+    """
+    Updates an item's details.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    item_id : str
+        The ID of the item to update.
+    item : ItemUpdate
+        The new data for the item.
+
+    Returns
+    -------
+    Item
+        The updated item object.
+
+    Raises
+    ------
+    HTTPException
+        If the item is not found.
+    unauthorized_error
+        If the item belongs to a different flat than the user.
+    """
     db_item = session.get(Item, item_id)
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -106,6 +202,30 @@ def delete_item(
     current_user: User = Depends(get_current_user),
     item_id: str,
 ):
+    """
+    Deletes an item.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    item_id : str
+        The ID of the item to delete.
+
+    Returns
+    -------
+    dict
+        A confirmation message.
+
+    Raises
+    ------
+    HTTPException
+        If the item is not found.
+    unauthorized_error
+        If the item belongs to a different flat than the user.
+    """
     db_item = session.get(Item, item_id)
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -125,7 +245,32 @@ def add_user_to_item(
     user_id: str,
     date: date = Query(...),
 ):
-    """This adds a User to an item and creates the associated credits/debts."""
+    """
+    Adds a user to an item and creates the associated credits/debts.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    item_id : str
+        The ID of the item.
+    user_id : str
+        The ID of the user to add.
+    date : date
+        The effective date of the addition (buy-in).
+
+    Returns
+    -------
+    Item
+        The updated item object.
+
+    Raises
+    ------
+    HTTPException
+        If item/user not found, user already in item, or unauthorized.
+    """
     db_item = session.get(Item, item_id)
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -154,7 +299,32 @@ def remove_user_from_item(
     user_id: str,
     date: date,
 ):
-    """This removes a User from an item and creates the associated credits/debts."""
+    """
+    Removes a user from an item and creates the associated credits/debts (buy-out).
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    item_id : str
+        The ID of the item.
+    user_id : str
+        The ID of the user to remove.
+    date : date
+        The effective date of removal.
+
+    Returns
+    -------
+    Item
+        The updated item object.
+
+    Raises
+    ------
+    HTTPException
+        If item/user not found, user not in item, or unauthorized.
+    """
     db_item = session.get(Item, item_id)
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")

@@ -14,3 +14,6 @@ file_handler.setFormatter(fmt)
 logger.handlers = [file_handler]
 
 logger.setLevel(logging.INFO)
+"""
+logging.Logger: configured logger for the application.
+"""

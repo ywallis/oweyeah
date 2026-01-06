@@ -8,6 +8,18 @@ from src.models import Flat, Item, User
 def test_add_item(
     client: TestClient, session: Session, flat_and_user_1: tuple[Flat, User]
 ):
+    """
+    Tests adding a new item to a flat.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    flat_and_user_1 : tuple[Flat, User]
+        The existing flat and user.
+    """
     flat, user = flat_and_user_1
 
     response = client.post(
@@ -39,6 +51,16 @@ def test_add_item(
 
 
 def test_fetch_item(client: TestClient, flat_user_item: tuple[Flat, User, Item]):
+    """
+    Tests retrieving an item by ID.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    flat_user_item : tuple[Flat, User, Item]
+        The existing flat, user, and item configuration.
+    """
     flat, user, item = flat_user_item
 
     response = client.get(f"/items/{item.id}")
@@ -51,6 +73,18 @@ def test_fetch_item(client: TestClient, flat_user_item: tuple[Flat, User, Item])
 def test_update_item(
     client: TestClient, session: Session, flat_user_item: tuple[Flat, User, Item]
 ):
+    """
+    Tests updating an item's details.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    flat_user_item : tuple[Flat, User, Item]
+        The existing flat, user, and item configuration.
+    """
     flat, user, item = flat_user_item
     new_name = "Toaster"
 
@@ -70,6 +104,18 @@ def test_update_item(
 def test_delete_item(
     client: TestClient, session: Session, flat_user_item: tuple[Flat, User, Item]
 ):
+    """
+    Tests deleting an item.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    flat_user_item : tuple[Flat, User, Item]
+        The existing flat, user, and item configuration.
+    """
     flat, user, item = flat_user_item
 
     response = client.delete(f"/items/{item.id}")
@@ -88,6 +134,20 @@ def test_add_user_to_item(
     flat_user_item: tuple[Flat, User, Item],
     user_2: User,
 ):
+    """
+    Tests manually adding a user to an item (buy-in).
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    flat_user_item : tuple[Flat, User, Item]
+        The existing flat, user, and item configuration.
+    user_2 : User
+        The user to add to the item.
+    """
     flat, user, item = flat_user_item
 
     session.add(user_2)
@@ -110,6 +170,18 @@ def test_remove_user_from_item(
     session: Session,
     flat_2_users_item: tuple[Flat, User, User, Item],
 ):
+    """
+    Tests manually removing a user from an item (buy-out).
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    flat_2_users_item : tuple[Flat, User, User, Item]
+        The existing flat with two users sharing an item.
+    """
     flat, user_1, user_2, item = flat_2_users_item
     response = client.patch(
         f"/items/{item.id}/remove/{user_2.id}", params={"date": "2026-01-01"}
@@ -132,6 +204,20 @@ def test_fetch_item_with_transactions(
     flat_user_item: tuple[Flat, User, Item],
     user_2: User,
 ):
+    """
+    Tests fetching an item including its transaction history.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    flat_user_item : tuple[Flat, User, Item]
+        The existing flat, user, and item configuration.
+    user_2 : User
+        Another user involved in transactions.
+    """
     flat, user_1, item = flat_user_item
     session.add(user_2)
     session.commit()
