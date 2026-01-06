@@ -40,7 +40,18 @@ router = APIRouter()
 async def login_google():
     """
     Redirects the user to Google's OAuth consent screen.
+
     The `scope` parameter requests access to the user's OpenID, profile, and email information.
+
+    Returns
+    -------
+    TokenUrl
+        A JSON object containing the Google OAuth URL.
+
+    Raises
+    ------
+    HTTPException
+        If the Google OAuth configuration (Client ID or Redirect URL) is missing.
     """
     # Ensure google_client_id and google_redirect_url are correctly configured
     if not google_client_id or not google_redirect_url:
@@ -64,7 +75,28 @@ async def login_for_token(
     session: Session = Depends(get_session),
     form_data: OAuth2PasswordRequestForm = Depends(),
 ) -> Token:
-    """This endpoint allows logging in with a standard OAuth password request form. The email is used as username."""
+    """
+    Authenticates a user using email and password.
+
+    The email is used as the username in the OAuth2 form.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    form_data : OAuth2PasswordRequestForm
+        The form data containing username (email) and password.
+
+    Returns
+    -------
+    Token
+        The refresh token upon successful authentication.
+
+    Raises
+    ------
+    HTTPException
+        If authentication fails (user not found, password mismatch, etc.).
+    """
     statement = select(User).where(User.email == form_data.username)
     user = session.exec(statement).one_or_none()
     if not user:
@@ -95,6 +127,26 @@ async def get_access_token(
     refresh_token: RefreshTokenRequest,
     session: Session = Depends(get_session),
 ):
+    """
+    Exchanges a valid refresh token for a new access token.
+
+    Parameters
+    ----------
+    refresh_token : RefreshTokenRequest
+        The request body containing the refresh token.
+    session : Session
+        The database session.
+
+    Returns
+    -------
+    Token
+        The new bearer access token.
+
+    Raises
+    ------
+    HTTPException
+        If the refresh token is invalid or not found.
+    """
     statement = select(RefreshToken).where(
         RefreshToken.token == refresh_token.refresh_token
     )
@@ -120,8 +172,31 @@ async def void_refresh_token(
     current_user: User = Depends(get_current_user),
     single_token: RefreshTokenRequest | None,
 ):
-    """If a single token is provided, this endpoint voids the token. If none are provided, all refresh tokens for the signed in user are voided."""
+    """
+    Invalidates refresh tokens to sign out the user.
 
+    If a single token is provided, only that token is voided.
+    If no token is provided, all refresh tokens for the user are voided.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    single_token : RefreshTokenRequest | None
+        The specific token to void, or None to void all.
+
+    Returns
+    -------
+    dict
+        A confirmation message.
+
+    Raises
+    ------
+    HTTPException
+        If no tokens are found to void.
+    """
     if single_token is None:
         statement = select(RefreshToken).where(
             RefreshToken.user_email == current_user.email
@@ -146,6 +221,26 @@ async def request_password_reset(
     email: EmailStr,
     session: Session = Depends(get_session),
 ):
+    """
+    Generates a password reset token for the given email.
+
+    Parameters
+    ----------
+    email : EmailStr
+        The email address of the user.
+    session : Session
+        The database session.
+
+    Returns
+    -------
+    dict
+        A JSON object containing the reset token.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not found.
+    """
     statement = select(User).where(User.email == email)
     user = session.exec(statement).one_or_none()
     if not user:
@@ -163,6 +258,26 @@ async def reset_password(
     data: ResetPasswordRequest,
     session: Session = Depends(get_session),
 ):
+    """
+    Resets the user's password using a valid reset token.
+
+    Parameters
+    ----------
+    data : ResetPasswordRequest
+        The request body containing the token and new password.
+    session : Session
+        The database session.
+
+    Returns
+    -------
+    dict
+        A confirmation message.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not found.
+    """
     email = extract_user(data)
 
     statement = select(User).where(User.email == email)
@@ -177,6 +292,19 @@ async def reset_password(
 
 @router.get("/login/me", response_model=UserPublic)
 async def read_me(current_user: User = Depends(get_current_user)):
+    """
+    Retrieves the current authenticated user's profile.
+
+    Parameters
+    ----------
+    current_user : User
+        The authenticated user.
+
+    Returns
+    -------
+    User
+        The user profile.
+    """
     return current_user
 
 
@@ -188,7 +316,32 @@ async def read_me(current_user: User = Depends(get_current_user)):
 async def auth_google(
     code: str, redirect_uri: str | None = None, session: Session = Depends(get_session)
 ):
-    """This endpoint handles the callback from Google after the user grants permission."""
+    """
+    Handles the Google OAuth callback, validates the code, and issues a refresh token.
+
+    If the user does not exist in the database, a new user is created.
+
+    Parameters
+    ----------
+    code : str
+        The authorization code received from Google.
+    redirect_uri : str | None, optional
+        The redirect URI used in the initial request, by default None.
+    session : Session
+        The database session.
+
+    Returns
+    -------
+    Token
+        The refresh token.
+
+    Raises
+    ------
+    HTTPException
+        If token exchange fails, token is invalid, or user ID cannot be validated.
+    ValueError
+        If token verification fails (audience/issuer).
+    """
     if redirect_uri is None:
         redirect_uri = google_redirect_url
     token_url = "https://oauth2.googleapis.com/token"

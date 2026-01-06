@@ -21,6 +21,32 @@ def fetch_user_debts(
     user_id: int,
     paid: bool = False,
 ):
+    """
+    Retrieves the list of debts for a specific user.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    user_id : int
+        The ID of the user whose debts are being fetched.
+    paid : bool, optional
+        Filter by paid status, by default False.
+
+    Returns
+    -------
+    list[TransactionPublic]
+        A list of debt transactions.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not found.
+    unauthorized_error
+        If the user belongs to a different flat.
+    """
     db_user = session.get(User, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -38,6 +64,32 @@ def fetch_user_credits(
     user_id: int,
     paid: bool = False,
 ):
+    """
+    Retrieves the list of credits for a specific user.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    user_id : int
+        The ID of the user whose credits are being fetched.
+    paid : bool, optional
+        Filter by paid status, by default False.
+
+    Returns
+    -------
+    list[TransactionPublic]
+        A list of credit transactions.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not found.
+    unauthorized_error
+        If the user belongs to a different flat.
+    """
     db_user = session.get(User, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")

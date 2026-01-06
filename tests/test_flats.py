@@ -5,6 +5,18 @@ from src.models import Flat, Item, User
 
 
 def test_add_flat(client: TestClient, session: Session, user_1: User):
+    """
+    Tests creating a new flat.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    user_1 : User
+        The user creating the flat.
+    """
     session.add(user_1)
     session.commit()
     session.refresh(user_1)
@@ -20,6 +32,16 @@ def test_add_flat(client: TestClient, session: Session, user_1: User):
 
 
 def test_get_flat(client: TestClient, flat_and_user_1: tuple[Flat, User]):
+    """
+    Tests retrieving a flat by ID.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    flat_and_user_1 : tuple[Flat, User]
+        The existing flat and user.
+    """
     flat_1, user_1 = flat_and_user_1
     response = client.get(f"/flats/{flat_1.id}")
 
@@ -30,6 +52,16 @@ def test_get_flat(client: TestClient, flat_and_user_1: tuple[Flat, User]):
 
 
 def test_update_flat(client: TestClient, flat_and_user_1: tuple[Flat, User]):
+    """
+    Tests updating a flat's details.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    flat_and_user_1 : tuple[Flat, User]
+        The existing flat and user.
+    """
     flat_1, user_1 = flat_and_user_1
 
     response = client.patch(f"/flats/{flat_1.id}", json={"name": "Elysium"})
@@ -45,6 +77,20 @@ def test_move_in_no_exclusion(
     flat_user_item: tuple[Flat, User, Item],
     user_2: User,
 ):
+    """
+    Tests moving a user into a flat without excluding any items.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    flat_user_item : tuple[Flat, User, Item]
+        The existing flat, user, and item configuration.
+    user_2 : User
+        The new user moving in.
+    """
     flat, user_1, item_1 = flat_user_item
     assert len(flat.users) == 1
     assert len(flat.items) == 1
@@ -80,6 +126,20 @@ def test_move_in_with_exclusion(
     flat_user_item: tuple[Flat, User, Item],
     user_2: User,
 ):
+    """
+    Tests moving a user into a flat while excluding specific items.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    flat_user_item : tuple[Flat, User, Item]
+        The existing flat, user, and item configuration.
+    user_2 : User
+        The new user moving in.
+    """
     flat, user_1, item_1 = flat_user_item
     assert len(flat.users) == 1
     assert len(flat.items) == 1
@@ -114,6 +174,18 @@ def test_move_out(
     session: Session,
     flat_2_users_item: tuple[Flat, User, User, Item],
 ):
+    """
+    Tests moving a user out of a flat.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    flat_2_users_item : tuple[Flat, User, User, Item]
+        The existing flat with two users and an item.
+    """
     flat, user_1, user_2, item = flat_2_users_item
     assert len(flat.users) == 2
     assert len(flat.items) == 1

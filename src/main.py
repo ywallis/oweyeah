@@ -11,6 +11,14 @@ from src.utils import create_db_and_tables, get_git_version
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    """
+    Lifespan context manager for the FastAPI application.
+
+    Parameters
+    ----------
+    _app : FastAPI
+        The FastAPI application instance (unused).
+    """
     # Startup logic
     create_db_and_tables()
     yield
@@ -42,4 +50,12 @@ app.include_router(reset.router)
 
 @app.get("/version", response_model=AppVersion)
 def version():
+    """
+    Endpoint to retrieve the current application version.
+
+    Returns
+    -------
+    AppVersion
+        The application version object.
+    """
     return AppVersion(version=app.version)

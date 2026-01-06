@@ -5,6 +5,14 @@ from src.models import Flat, Item, Transaction, User
 
 
 def test_add_user(client: TestClient):
+    """
+    Tests adding a new user.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    """
     response = client.post(
         "/users/",
         json={
@@ -25,6 +33,18 @@ def test_add_user(client: TestClient):
 
 
 def test_fetch_user(client: TestClient, session: Session, user_1: User):
+    """
+    Tests retrieving a user by ID.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    user_1 : User
+        The user to fetch.
+    """
     session.add(user_1)
     session.commit()
     session.refresh(user_1)
@@ -43,6 +63,18 @@ def test_fetch_user(client: TestClient, session: Session, user_1: User):
 
 
 def test_fetch_user_no_transactions(client: TestClient, session: Session, user_1: User):
+    """
+    Tests fetching a user's transactions when there are none.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    user_1 : User
+        The user to check.
+    """
     session.add(user_1)
     session.commit()
     session.refresh(user_1)
@@ -64,6 +96,24 @@ def test_fetch_user_transactions(
     flat_1: Flat,
     item_1: Item,
 ):
+    """
+    Tests fetching a user's transactions when they exist.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    user_1 : User
+        The first user (creditor).
+    user_2 : User
+        The second user (debtor).
+    flat_1 : Flat
+        The shared flat.
+    item_1 : Item
+        The shared item.
+    """
     session.add(user_1)
     session.add(user_2)
     session.add(flat_1)
@@ -105,6 +155,18 @@ def test_fetch_user_transactions(
 
 
 def test_update_user(client: TestClient, session: Session, user_1: User):
+    """
+    Tests updating a user's profile.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    user_1 : User
+        The user to update.
+    """
     session.add(user_1)
     session.commit()
     session.refresh(user_1)
@@ -130,6 +192,18 @@ def test_update_user(client: TestClient, session: Session, user_1: User):
 
 
 def test_delete_user(client: TestClient, session: Session, user_1: User):
+    """
+    Tests deleting a user.
+
+    Parameters
+    ----------
+    client : TestClient
+        The test client.
+    session : Session
+        The database session.
+    user_1 : User
+        The user to delete.
+    """
     session.add(user_1)
     session.commit()
     session.refresh(user_1)

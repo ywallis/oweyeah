@@ -6,8 +6,26 @@ from src.models import Item
 
 
 def depreciate_price(item: Item, date_for_calculation: date) -> float:
-    """Calculates the depreciated price of an item. Requires a date in YYYY-MM-DD format."""
+    """
+    Calculates the depreciated price of an item.
 
+    Parameters
+    ----------
+    item : Item
+        The item to depreciate.
+    date_for_calculation : date
+        The date for which to calculate the value.
+
+    Returns
+    -------
+    float
+        The depreciated price.
+
+    Raises
+    ------
+    HTTPException
+        If the calculation date is before the purchase date.
+    """
     if date_for_calculation < item.purchase_date:
         raise HTTPException(
             status_code=400,

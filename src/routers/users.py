@@ -20,6 +20,26 @@ router = APIRouter()
 
 @router.post("/users/", response_model=UserPublic)
 def add_user(*, session: Session = Depends(get_session), user: UserCreate):
+    """
+    Creates a new user.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    user : UserCreate
+        The user creation data.
+
+    Returns
+    -------
+    User
+        The created user object.
+
+    Raises
+    ------
+    HTTPException
+        If the email already exists (IntegrityError).
+    """
     hashed_pw = hash_password(user.password)
     extra_data = {"hashed_password": hashed_pw}
     db_user = User.model_validate(user, update=extra_data)
@@ -41,6 +61,30 @@ def fetch_user(
     current_user: User = Depends(get_current_user),
     user_id: str,
 ):
+    """
+    Retrieves a user by their ID, including their items.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    user_id : str
+        The ID of the user to retrieve.
+
+    Returns
+    -------
+    User
+        The user object.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not found.
+    unauthorized_error
+        If the user belongs to a different flat.
+    """
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -56,6 +100,30 @@ def fetch_user_with_transactions(
     current_user: User = Depends(get_current_user),
     user_id: str,
 ):
+    """
+    Retrieves a user by their ID, including their transactions.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    user_id : str
+        The ID of the user to retrieve.
+
+    Returns
+    -------
+    User
+        The user object with transactions.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not found.
+    unauthorized_error
+        If the user belongs to a different flat.
+    """
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -72,6 +140,32 @@ def update_user(
     user_id: str,
     user: UserUpdate,
 ):
+    """
+    Updates a user's details.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    user_id : str
+        The ID of the user to update.
+    user : UserUpdate
+        The new data for the user.
+
+    Returns
+    -------
+    User
+        The updated user object.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not found.
+    unauthorized_error
+        If the user ID does not match the authenticated user.
+    """
     db_user = session.get(User, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -98,6 +192,30 @@ def delete_user(
     current_user: User = Depends(get_current_user),
     user_id: str,
 ):
+    """
+    Deletes a user.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    current_user : User
+        The authenticated user.
+    user_id : str
+        The ID of the user to delete.
+
+    Returns
+    -------
+    dict
+        A confirmation message.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not found.
+    unauthorized_error
+        If the user ID does not match the authenticated user.
+    """
     db_user = session.get(User, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")

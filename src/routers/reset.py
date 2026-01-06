@@ -12,6 +12,21 @@ router = APIRouter()
 
 @router.post("/reset/")
 def reset_app(*, session: SQLASession = Depends(get_session)):
+    """
+    Resets the application database to a default state with dummy data.
+
+    Warning: This deletes all existing data.
+
+    Parameters
+    ----------
+    session : SQLASession
+        The database session.
+
+    Returns
+    -------
+    dict
+        A confirmation message.
+    """
     user_1 = User(
         first_name="Yann",
         last_name="Wallis",

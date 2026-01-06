@@ -11,6 +11,25 @@ from src.models import User
 
 
 def item_buy_out(session: Session, user_to_remove: User, item: Item, date: date):
+    """
+    Calculates and records the buy-out transaction for a user leaving an item ownership.
+
+    Parameters
+    ----------
+    session : Session
+        The database session.
+    user_to_remove : User
+        The user who is being bought out.
+    item : Item
+        The item being bought out of.
+    date : date
+        The date of the buy-out.
+
+    Raises
+    ------
+    HTTPException
+        If the item has 1 or fewer users, or if item/user IDs are undefined.
+    """
     if len(item.users) <= 1:
         raise HTTPException(
             status_code=500, detail="Item should have at least one user"
